@@ -800,14 +800,27 @@ function renderSensitivityChart(result) {
 }
 
 function updateChart(id, type, data, options) {
-  const ctx = document.getElementById(id);
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(ctx, {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+
+  canvas.removeAttribute('width');
+  canvas.removeAttribute('height');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+
+  charts[id] = new Chart(canvas, {
     type,
     data,
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      resizeDelay: 100,
+      animation: false,
       ...options
     }
   });
