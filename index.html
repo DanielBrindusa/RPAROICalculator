@@ -1,0 +1,524 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPA ROI Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">GitHub Pages ready</p>
+        <h1>RPA ROI Calculator</h1>
+        <p class="hero-copy">
+          Estimate realistic ROI for attended, unattended, or hybrid automation with implementation cost, recurring cost,
+          exceptions, error reduction, realized savings, scenarios, exports, and shareable links.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <button id="themeToggle" class="ghost-button" type="button">Toggle theme</button>
+        <button id="shareBtn" class="ghost-button" type="button">Copy share link</button>
+        <button id="pdfBtn" class="ghost-button" type="button">Export results to PDF</button>
+      </div>
+    </header>
+
+    <section class="card intro-card">
+      <div class="intro-grid">
+        <div>
+          <h2>How to use</h2>
+          <p>Choose a process template, review each step, then calculate results. All data stays in the browser.</p>
+        </div>
+        <div class="intro-actions">
+          <label>
+            <span>Process template</span>
+            <select id="templateSelect">
+              <option value="">Select a template</option>
+              <option value="invoice">Invoice Processing</option>
+              <option value="onboarding">Employee Onboarding</option>
+              <option value="dataEntry">Data Entry</option>
+              <option value="reports">Report Generation</option>
+              <option value="reconciliation">Reconciliations</option>
+              <option value="serviceLookup">Customer Service Lookup</option>
+            </select>
+          </label>
+          <button id="applyTemplateBtn" type="button">Apply template</button>
+          <button id="resetBtn" class="ghost-button" type="button">Reset to defaults</button>
+        </div>
+      </div>
+    </section>
+
+    <main class="app-grid">
+      <section class="card wizard-card">
+        <div class="wizard-header">
+          <h2>Calculator inputs</h2>
+          <div class="wizard-stepper" id="stepper"></div>
+        </div>
+
+        <form id="roiForm">
+          <section class="step active" data-step="1">
+            <div class="step-title">
+              <h3>1. Project setup</h3>
+              <p>Set the scope, period, automation type, and optional vendor pricing preset.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Used for saved scenarios, exports, and reports.">
+                <span>Project name</span>
+                <input type="text" name="projectName" value="Sample RPA Project" />
+              </label>
+              <label data-tip="Useful for saved scenario filtering and PDF exports.">
+                <span>Department</span>
+                <input type="text" name="department" value="Operations" />
+              </label>
+              <label data-tip="Shown in all monetary outputs.">
+                <span>Currency</span>
+                <select name="currency">
+                  <option value="EUR">EUR</option>
+                  <option value="RON">RON</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </label>
+              <label data-tip="Results can be shown for 1, 3, or 5 years.">
+                <span>Analysis period</span>
+                <select name="analysisYears">
+                  <option value="1">1 year</option>
+                  <option value="3" selected>3 years</option>
+                  <option value="5">5 years</option>
+                </select>
+              </label>
+              <label data-tip="Attended automations help users on demand. Unattended automations run in the background.">
+                <span>Automation type</span>
+                <select name="automationType">
+                  <option value="attended">Attended</option>
+                  <option value="unattended" selected>Unattended</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </label>
+              <label data-tip="Vendor-neutral keeps costs manual. Sample presets are editable.">
+                <span>Vendor mode</span>
+                <select name="vendorMode">
+                  <option value="neutral" selected>Vendor-neutral</option>
+                  <option value="powerAutomate">Power Automate style</option>
+                  <option value="uipath">UiPath style</option>
+                  <option value="custom">Custom preset</option>
+                </select>
+              </label>
+              <label data-tip="Use 1 if the form already contains aggregated values.">
+                <span>Number of similar processes in scope</span>
+                <input type="number" min="1" step="1" name="processCount" value="1" />
+              </label>
+              <label data-tip="Optional advanced finance input for NPV and IRR.">
+                <span>Discount rate %</span>
+                <input type="number" min="0" max="100" step="0.1" name="discountRatePct" value="0" />
+              </label>
+              <label data-tip="Used only for sample vendor pricing. Editable later in run costs.">
+                <span>Attended users</span>
+                <input type="number" min="0" step="1" name="attendedUsers" value="0" />
+              </label>
+              <label data-tip="Used only for sample vendor pricing. Editable later in run costs.">
+                <span>Unattended bots</span>
+                <input type="number" min="0" step="1" name="unattendedBots" value="1" />
+              </label>
+              <label data-tip="Used only for sample vendor pricing. Editable later in run costs.">
+                <span>Hosted bots</span>
+                <input type="number" min="0" step="1" name="hostedBots" value="0" />
+              </label>
+              <div class="inline-actions full-width">
+                <button id="applyVendorPresetBtn" type="button">Load sample pricing</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="step" data-step="2">
+            <div class="step-title">
+              <h3>2. Current manual baseline</h3>
+              <p>Describe today’s manual process, volume, labor effort, and current quality leakage.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Average number of cases or transactions per working day.">
+                <span>Transactions per day</span>
+                <input type="number" min="0" step="1" name="transactionsPerDay" value="120" />
+              </label>
+              <label data-tip="Used to estimate annual transaction volume.">
+                <span>Working days per month</span>
+                <input type="number" min="1" max="31" step="1" name="workingDaysPerMonth" value="22" />
+              </label>
+              <label data-tip="Use 0 if the workload is stable; use positive or negative values to adjust annual volume.">
+                <span>Annual volume adjustment %</span>
+                <input type="number" min="-90" max="300" step="0.1" name="seasonalityAdjustmentPct" value="0" />
+              </label>
+              <label data-tip="Average total manual handling time per transaction before automation.">
+                <span>Manual handling time per transaction (minutes)</span>
+                <input type="number" min="0" step="0.1" name="manualMinutesPerTransaction" value="12" />
+              </label>
+              <label data-tip="How many people currently perform this work. Used for warning logic and context.">
+                <span>Employees touching this process</span>
+                <input type="number" min="0" step="1" name="employeesInProcess" value="4" />
+              </label>
+              <label data-tip="Use fully loaded cost, not only base salary.">
+                <span>Fully loaded hourly cost</span>
+                <input type="number" min="0" step="0.01" name="loadedHourlyCost" value="25" />
+              </label>
+              <label data-tip="Monthly overtime caused by this process today.">
+                <span>Overtime hours per month</span>
+                <input type="number" min="0" step="0.1" name="overtimeHoursPerMonth" value="20" />
+              </label>
+              <label data-tip="Use 0 if overtime is paid at the same rate as regular time.">
+                <span>Overtime hourly cost</span>
+                <input type="number" min="0" step="0.01" name="overtimeHourlyCost" value="35" />
+              </label>
+              <label data-tip="Percentage of cases with errors or rework before automation.">
+                <span>Current error rate %</span>
+                <input type="number" min="0" max="100" step="0.1" name="currentErrorRatePct" value="5" />
+              </label>
+              <label data-tip="Average extra handling time per error or rework case.">
+                <span>Rework time per error (minutes)</span>
+                <input type="number" min="0" step="0.1" name="reworkMinutesPerError" value="8" />
+              </label>
+              <label data-tip="Optional hard cost for each error, such as credits, corrections, or chargebacks.">
+                <span>Cost per error</span>
+                <input type="number" min="0" step="0.01" name="costPerError" value="10" />
+              </label>
+              <label data-tip="Optional current annual penalty or avoidable SLA leakage tied to this process.">
+                <span>Annual SLA penalty or leakage</span>
+                <input type="number" min="0" step="0.01" name="slaPenaltyAnnual" value="2000" />
+              </label>
+              <label data-tip="Optional annual cost of backlog, delay, or missed work.">
+                <span>Annual backlog cost</span>
+                <input type="number" min="0" step="0.01" name="backlogCostAnnual" value="1500" />
+              </label>
+            </div>
+          </section>
+
+          <section class="step" data-step="3">
+            <div class="step-title">
+              <h3>3. Automated future state</h3>
+              <p>Describe how much work is automated, what remains for people, and how stable the automation will be.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Portion of the process volume expected to be automated.">
+                <span>Automation coverage %</span>
+                <input type="number" min="0" max="100" step="0.1" name="automationCoveragePct" value="80" />
+              </label>
+              <label data-tip="Informational speed metric for the bot. Not directly monetized, but shown in exports.">
+                <span>Bot processing time per transaction (minutes)</span>
+                <input type="number" min="0" step="0.1" name="botMinutesPerTransaction" value="2" />
+              </label>
+              <label data-tip="Average human effort still needed per transaction after automation.">
+                <span>Remaining human effort per transaction (minutes)</span>
+                <input type="number" min="0" step="0.1" name="remainingHumanMinutesPerTransaction" value="2.5" />
+              </label>
+              <label data-tip="Share of automated cases that still need human exception handling.">
+                <span>Exception rate %</span>
+                <input type="number" min="0" max="100" step="0.1" name="exceptionRatePct" value="12" />
+              </label>
+              <label data-tip="Average time needed to resolve one exception.">
+                <span>Exception handling time (minutes)</span>
+                <input type="number" min="0" step="0.1" name="exceptionHandlingMinutes" value="10" />
+              </label>
+              <label data-tip="Expected error rate after automation, including bot mistakes and downstream rework.">
+                <span>Post-automation error rate %</span>
+                <input type="number" min="0" max="100" step="0.1" name="postAutomationErrorRatePct" value="1.5" />
+              </label>
+              <label data-tip="Expected bot or solution availability in steady state.">
+                <span>Expected uptime / availability %</span>
+                <input type="number" min="0" max="100" step="0.1" name="availabilityPct" value="97" />
+              </label>
+              <label data-tip="Used for context only.">
+                <span>Bot runs per day</span>
+                <input type="number" min="0" step="1" name="botRunsPerDay" value="6" />
+              </label>
+              <label data-tip="Month number when benefits start in year 1. Example: 7 means July.">
+                <span>Go-live month (1-12)</span>
+                <input type="number" min="1" max="12" step="1" name="goLiveMonth" value="4" />
+              </label>
+              <label data-tip="Months needed to reach full steady-state performance after go-live.">
+                <span>Ramp-up period (months)</span>
+                <input type="number" min="0" max="24" step="1" name="rampUpMonths" value="2" />
+              </label>
+              <label data-tip="Temporary reduction in benefit during hypercare or stabilization.">
+                <span>Stabilization loss %</span>
+                <input type="number" min="0" max="100" step="0.1" name="stabilizationLossPct" value="5" />
+              </label>
+              <label data-tip="Share of gross time savings that turns into true financial value.">
+                <span>Realization factor %</span>
+                <input type="number" min="0" max="100" step="0.1" name="realizationFactorPct" value="65" />
+              </label>
+            </div>
+          </section>
+
+          <section class="step" data-step="4">
+            <div class="step-title">
+              <h3>4. One-time implementation cost</h3>
+              <p>Capture discovery, delivery, testing, change, and setup effort realistically.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Internal or blended project delivery rate for one-time work.">
+                <span>Implementation hourly rate</span>
+                <input type="number" min="0" step="0.01" name="implementationHourlyRate" value="45" />
+              </label>
+              <label data-tip="Hours for process assessment and discovery.">
+                <span>Discovery hours</span>
+                <input type="number" min="0" step="0.1" name="discoveryHours" value="20" />
+              </label>
+              <label data-tip="Hours for detailed solution design.">
+                <span>Solution design hours</span>
+                <input type="number" min="0" step="0.1" name="designHours" value="24" />
+              </label>
+              <label data-tip="Actual automation build effort.">
+                <span>Development hours</span>
+                <input type="number" min="0" step="0.1" name="developmentHours" value="120" />
+              </label>
+              <label data-tip="Testing, UAT support, fixes, and validation.">
+                <span>Testing / UAT hours</span>
+                <input type="number" min="0" step="0.1" name="testingHours" value="40" />
+              </label>
+              <label data-tip="PM or delivery coordination hours.">
+                <span>Project management hours</span>
+                <input type="number" min="0" step="0.1" name="pmHours" value="18" />
+              </label>
+              <label data-tip="Hours for environment, runner, VM, or deployment setup.">
+                <span>Infrastructure setup hours</span>
+                <input type="number" min="0" step="0.1" name="infraSetupHours" value="12" />
+              </label>
+              <label data-tip="Hours for access, credentials, and security alignment.">
+                <span>Security / access setup hours</span>
+                <input type="number" min="0" step="0.1" name="securitySetupHours" value="10" />
+              </label>
+              <label data-tip="Documentation for support, runbook, and handover.">
+                <span>Documentation hours</span>
+                <input type="number" min="0" step="0.1" name="documentationHours" value="10" />
+              </label>
+              <label data-tip="Training time for users, support, or owners.">
+                <span>Training hours</span>
+                <input type="number" min="0" step="0.1" name="trainingHours" value="8" />
+              </label>
+              <label data-tip="Communication and change management effort.">
+                <span>Change management hours</span>
+                <input type="number" min="0" step="0.1" name="changeHours" value="8" />
+              </label>
+              <label data-tip="Any fixed partner or consultant cost.">
+                <span>External consultant / partner cost</span>
+                <input type="number" min="0" step="0.01" name="partnerCost" value="0" />
+              </label>
+              <label data-tip="Any setup, onboarding, or initial platform fee.">
+                <span>Initial software / setup fees</span>
+                <input type="number" min="0" step="0.01" name="setupFees" value="0" />
+              </label>
+              <label data-tip="Post-go-live hypercare or floor support cost.">
+                <span>Hypercare cost</span>
+                <input type="number" min="0" step="0.01" name="hypercareCost" value="600" />
+              </label>
+              <label data-tip="Additional reserve for unknowns.">
+                <span>Contingency %</span>
+                <input type="number" min="0" max="100" step="0.1" name="contingencyPct" value="10" />
+              </label>
+            </div>
+          </section>
+
+          <section class="step" data-step="5">
+            <div class="step-title">
+              <h3>5. Recurring annual run cost</h3>
+              <p>Include license, infrastructure, monitoring, support, and change cost so the ROI stays realistic.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Annual license cost paid for the platform or named users.">
+                <span>Annual software license cost</span>
+                <input type="number" min="0" step="0.01" name="annualLicenseCost" value="3600" />
+              </label>
+              <label data-tip="Annual unattended runner or bot capacity cost.">
+                <span>Annual bot / runner cost</span>
+                <input type="number" min="0" step="0.01" name="annualBotCost" value="1800" />
+              </label>
+              <label data-tip="Annual orchestration, control room, or management platform cost.">
+                <span>Annual orchestrator / platform cost</span>
+                <input type="number" min="0" step="0.01" name="annualOrchestratorCost" value="900" />
+              </label>
+              <label data-tip="Annual VM, cloud, infrastructure, or hosting cost.">
+                <span>Annual hosting / VM cost</span>
+                <input type="number" min="0" step="0.01" name="annualHostingCost" value="1200" />
+              </label>
+              <label data-tip="Support hours per month in steady state.">
+                <span>Support hours per month</span>
+                <input type="number" min="0" step="0.1" name="supportHoursPerMonth" value="6" />
+              </label>
+              <label data-tip="Support or L2/L3 hourly rate.">
+                <span>Support hourly rate</span>
+                <input type="number" min="0" step="0.01" name="supportHourlyRate" value="35" />
+              </label>
+              <label data-tip="Monitoring, scheduling, admin, and checks each month.">
+                <span>Monitoring / admin hours per month</span>
+                <input type="number" min="0" step="0.1" name="monitoringHoursPerMonth" value="4" />
+              </label>
+              <label data-tip="Monitoring or platform admin hourly rate.">
+                <span>Monitoring hourly rate</span>
+                <input type="number" min="0" step="0.01" name="monitoringHourlyRate" value="30" />
+              </label>
+              <label data-tip="Enhancements, bot fixes, or release adaptation each month.">
+                <span>Maintenance / enhancement hours per month</span>
+                <input type="number" min="0" step="0.1" name="maintenanceHoursPerMonth" value="6" />
+              </label>
+              <label data-tip="Maintenance or developer hourly rate.">
+                <span>Maintenance hourly rate</span>
+                <input type="number" min="0" step="0.01" name="maintenanceHourlyRate" value="40" />
+              </label>
+              <label data-tip="Business owner review, controls, and governance effort per month.">
+                <span>Business owner review hours per month</span>
+                <input type="number" min="0" step="0.1" name="ownerHoursPerMonth" value="2" />
+              </label>
+              <label data-tip="Business owner review rate.">
+                <span>Business owner hourly rate</span>
+                <input type="number" min="0" step="0.01" name="ownerHourlyRate" value="28" />
+              </label>
+              <label data-tip="Annual compliance, audit, or managed service overhead.">
+                <span>Annual compliance / managed service cost</span>
+                <input type="number" min="0" step="0.01" name="annualComplianceCost" value="500" />
+              </label>
+            </div>
+          </section>
+
+          <section class="step" data-step="6">
+            <div class="step-title">
+              <h3>6. Additional measurable business value</h3>
+              <p>Enter only benefits that can be financially justified. Soft benefits are tracked separately.</p>
+            </div>
+            <div class="form-grid">
+              <label data-tip="Annual contractor spend avoided because of automation.">
+                <span>Annual contractor cost avoidance</span>
+                <input type="number" min="0" step="0.01" name="contractorAvoidanceAnnual" value="0" />
+              </label>
+              <label data-tip="Annual hiring avoidance or vacancy cost avoided.">
+                <span>Annual hiring avoidance</span>
+                <input type="number" min="0" step="0.01" name="hiringAvoidanceAnnual" value="0" />
+              </label>
+              <label data-tip="Annual value of faster billing, faster response, or earlier revenue recognition.">
+                <span>Annual revenue acceleration</span>
+                <input type="number" min="0" step="0.01" name="revenueAccelerationAnnual" value="0" />
+              </label>
+              <label data-tip="Any other hard annual financial benefit.">
+                <span>Other measurable annual benefit</span>
+                <input type="number" min="0" step="0.01" name="otherAnnualBenefit" value="0" />
+              </label>
+              <label data-tip="Optional notes for non-financial benefits. Exported but not monetized.">
+                <span>Non-financial benefits notes</span>
+                <textarea name="softBenefits" rows="5" placeholder="Examples: better compliance, better employee experience, better audit trail, faster response times."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="step" data-step="7">
+            <div class="step-title">
+              <h3>7. Review and calculate</h3>
+              <p>Run the model, compare scenarios, save the case, and export your results.</p>
+            </div>
+            <div class="review-panel">
+              <div class="review-actions">
+                <button id="calcBtn" type="button">Calculate ROI</button>
+                <button id="saveScenarioBtn" type="button">Save scenario</button>
+                <button id="exportJsonBtn" class="ghost-button" type="button">Export assumptions JSON</button>
+                <button id="exportCsvBtn" class="ghost-button" type="button">Export assumptions CSV</button>
+              </div>
+              <div class="review-text">
+                <p>This tool stores data in local storage only. Use the share link button to create a URL with the current assumptions.</p>
+              </div>
+            </div>
+          </section>
+        </form>
+
+        <div class="wizard-nav">
+          <button id="prevStepBtn" class="ghost-button" type="button">Previous</button>
+          <button id="nextStepBtn" type="button">Next</button>
+        </div>
+      </section>
+
+      <section class="results-column">
+        <section class="card results-card" id="resultsArea">
+          <div class="section-header">
+            <div>
+              <h2>Results</h2>
+              <p>Expected, conservative, and optimistic scenarios are calculated automatically.</p>
+            </div>
+          </div>
+
+          <div class="summary-grid" id="summaryGrid">
+            <article class="summary-box">
+              <span>Year 1 ROI</span>
+              <strong id="year1RoiOutput">-</strong>
+            </article>
+            <article class="summary-box">
+              <span>3-Year ROI</span>
+              <strong id="periodRoiOutput">-</strong>
+            </article>
+            <article class="summary-box">
+              <span>Payback</span>
+              <strong id="paybackOutput">-</strong>
+            </article>
+            <article class="summary-box">
+              <span>NPV</span>
+              <strong id="npvOutput">-</strong>
+            </article>
+          </div>
+
+          <div class="scenario-tabs">
+            <button class="tab-btn active" data-scenario="expected" type="button">Expected</button>
+            <button class="tab-btn" data-scenario="conservative" type="button">Conservative</button>
+            <button class="tab-btn" data-scenario="optimistic" type="button">Optimistic</button>
+          </div>
+
+          <div class="metrics-grid" id="metricsGrid"></div>
+
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3>Annual benefit breakdown</h3>
+              <canvas id="benefitChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Cost per transaction</h3>
+              <canvas id="costPerTxChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Cumulative cash flow</h3>
+              <canvas id="cashFlowChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Sensitivity drivers</h3>
+              <canvas id="sensitivityChart"></canvas>
+            </div>
+          </div>
+
+          <div class="two-column">
+            <div class="sub-card">
+              <h3>Warnings and realism checks</h3>
+              <ul id="warningsList" class="plain-list"></ul>
+            </div>
+            <div class="sub-card">
+              <h3>Confidence and assumptions</h3>
+              <div id="confidenceBox" class="confidence-box"></div>
+              <table class="mini-table" id="scenarioCompareTable"></table>
+            </div>
+          </div>
+        </section>
+
+        <section class="card saved-card">
+          <div class="section-header">
+            <div>
+              <h2>Saved scenarios</h2>
+              <p>Stored in local storage on this browser only.</p>
+            </div>
+          </div>
+          <div id="savedScenariosList" class="saved-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
